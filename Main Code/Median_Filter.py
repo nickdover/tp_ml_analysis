@@ -13,7 +13,9 @@ from skimage.metrics import structural_similarity as ssim
 import scipy.constants as constants
 from scipy.optimize import curve_fit
 #%%
-
+"""
+Script for traditional investigations
+"""
 def remove_noise(noisy_map):
     def median():
         f = median_filter(noisy_map, size=(3,3))

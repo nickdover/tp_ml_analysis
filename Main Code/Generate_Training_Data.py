@@ -11,6 +11,12 @@ import pickle
 import os
 import time
 
+"""
+Script that can be ran on the imperial HPC. Could run concurrently, files are saved 
+in the same folder.
+"""
+
+
 def GenerateDataset(Beam, Thomson, Detector, thermal_E_MeV, Num_particles, E_max_MeV, dataset_size, foldername, x_range_mm, y_range_mm, Propagation_step_size = 9 * 10 ** -11):
     config = dict()
     config["Number of particles range"] = Num_particles

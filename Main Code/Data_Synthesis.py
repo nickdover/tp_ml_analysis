@@ -14,6 +14,10 @@ from scipy import interpolate
 import time
 from scipy.ndimage import gaussian_filter
 
+"""
+Script for the ions simulation. 
+"""
+
 class Particle:
     
     def convertKEtovel(self, mass_MeV, energy_MeV):

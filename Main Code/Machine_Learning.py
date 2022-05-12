@@ -22,6 +22,9 @@ import tarfile
 import progressbar
 from sklearn.preprocessing import MinMaxScaler  
 #%%
+"""
+Script with Machine learning functions. 
+"""
 def unzip(foldername):
     tar = tarfile.open(f"{foldername}.tar", "r")
     tar.extractall()
