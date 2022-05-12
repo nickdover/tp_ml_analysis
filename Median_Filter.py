@@ -77,10 +77,10 @@ def evaluate(filtered_map, noisefree_map, threshold, track_only=False):
     # SSIM = 1 as expected
     
 # warning: this function uses the parabolic equation - assumed uniform E and B field
-def reconstruct_spectrum(pixel_map, image_dimensions, q, B, L, D, m, Num_data):
+def reconstruct_spectrum(pixel_map, image_dimensions, q, B, L, D, m, Num_data, Discard_data):
     Num_pixels = len(pixel_map)
     pixel_edges = np.linspace(image_dimensions[0], image_dimensions[1], Num_pixels + 1)
-    
+
     bin_edges = []
     for pixel_edge in pixel_edges:
         if pixel_edge != 0:
@@ -93,42 +93,68 @@ def reconstruct_spectrum(pixel_map, image_dimensions, q, B, L, D, m, Num_data):
     bin_centres = []
     width = []
     for i in range(Num_data):
-        count = sum(pixel_map[:,i])
+        count = float(sum(pixel_map[:,i]))
         bin_height.append(count / (bin_edges[i] - bin_edges[i + 1]))
         bin_centres.append((bin_edges[i] + bin_edges[i + 1])/2)
         width.append((bin_edges[i] - bin_edges[i + 1])/2)
         
     count = 0
-    for j in range(Num_data, Num_pixels):
+    for j in range(Num_data, Num_pixels - Discard_data):
         count += sum(pixel_map[:,j])
-    bin_centres.append((bin_edges[Num_data] + bin_edges[Num_pixels])/2)
-    bin_height.append(count / (bin_edges[Num_data] - bin_edges[Num_pixels]))
-    width.append((bin_edges[Num_data] - bin_edges[Num_pixels])/2)
+    bin_centres.append((bin_edges[Num_data] + bin_edges[Num_pixels - Discard_data])/2)
+    bin_height.append(float(count) / (bin_edges[Num_data] - bin_edges[Num_pixels - Discard_data]))
+    width.append((bin_edges[Num_data] - bin_edges[Num_pixels - Discard_data])/2)
     return bin_centres[1:], bin_height[1:], width[1:]
 
-def Boltzman(x, N, E):
-    return N * np.exp(-x / (E))
-
-def Image_analysis(Images, image_dimensions, q, B, L, D, m, Num_data):
+def Image_analysis(Images, image_dimensions, q, B, L, D, m, Num_data, Discard_data):
+    def linear(x, m, c):
+        return m * x + c
+    
+    def filter_zeros(bin_centres, bin_height, width):
+        x,y,z = [],[],[]
+        for i in range(len(bin_height)):
+            if bin_height[i] !=0:
+                x.append(bin_centres[i])
+                y.append(bin_height[i])
+                z.append(width[i])
+        return x,y,z
+    
     res = []
     for Image in Images:
-        bin_centres, bin_height, width = reconstruct_spectrum(Image, image_dimensions, q, B, L, D, m, Num_data)
-        popt, pcov = curve_fit(Boltzman, bin_centres, bin_height, p0 = [2000, 3])
-        Num_particles = sum(sum(Image))
-        E_MeV = popt[1]
-        A = popt[0]
+        bin_centres, bin_height, width = reconstruct_spectrum(Image, image_dimensions, q, B, L, D, m, Num_data, Discard_data)
+        bin_centres, bin_height, width = filter_zeros(bin_centres, bin_height, width)
+        popt, pcov = curve_fit(linear, bin_centres,np.log(bin_height))
+        Num_particles = int(sum(sum(Image)))
+        E_MeV = -1 / popt[0]
+        A = np.exp(popt[1])
         E_max = -E_MeV * np.log(1 - Num_particles / (A * E_MeV))
         res.append([E_MeV, Num_particles, E_max])
-            
     return res
 
-def plot_spectrum(image, image_dimensions, q, B, L, D, m, Num_data):
-    bin_centres, bin_height, width = reconstruct_spectrum(image, image_dimensions, q, B, L, D, m, Num_data)
-    plt.errorbar(bin_centres, bin_height, xerr = width, fmt =  "x", color = "black")
-    popt, pcov = curve_fit(Boltzman, bin_centres, bin_height, p0 = [2000, 3])
+def plot_spectrum(image, image_dimensions, q, B, L, D, m, Num_data, Discard_data):
+    def Boltzman(x, A, E):
+        return A * np.exp(-x/E)
+    
+    def linear(x, m, c):
+        return m * x + c
+    
+    def filter_zeros(bin_centres, bin_height, width):
+        x,y,z = [],[],[]
+        for i in range(len(bin_height)):
+            if bin_height[i] !=0:
+                x.append(bin_centres[i])
+                y.append(bin_height[i])
+                z.append(width[i])
+        return x,y,z
+                
+    bin_centres, bin_height, width = reconstruct_spectrum(image, image_dimensions, q, B, L, D, m, Num_data, Discard_data)
+    bin_centres, bin_height, width = filter_zeros(bin_centres, bin_height, width)
+    plt.errorbar(bin_centres, bin_height, xerr = width, fmt =  "x", color = "black", label = "Processed data")
+    popt, pcov = curve_fit(linear, bin_centres,np.log(bin_height))
     x = np.arange(0, bin_centres[0] + width[0], 0.01)
-    plt.plot(x, Boltzman(x, *popt))
+    plt.plot(x, Boltzman(x, np.exp(popt[1]), -1 / popt[0]), label = "Fitted Boltzmann distribution")
+    plt.legend()
     #plt.xscale("log")
     plt.xlabel("Energy / MeV")
-    plt.ylabel("Number of particles")
+    plt.ylabel("Particle density / MeV$^{-1}$")
     plt.show()

@@ -391,28 +391,22 @@ def validatedeflection(mass_MeV, charge_e, energy_min_MeV, energy_max_MeV, step,
         D = Detector._z0 - (Thomson._z0 + l) + l / 2 
         E_kin = particle._energy * constants.e * 10 ** 6
         m = particle.mass_kg()
-        
-        print(q)
-        print(E)
-        print(B)
-        print(l)
-        print(D)
 
         
         x_analytical = q * E * l * D / (2 * E_kin)
         y_analytical = q * B * l * D / (2 * E_kin * m) ** 0.5
         
-        x_diff = abs(x_analytical - x_numerical) 
-        y_diff = abs(y_analytical - y_numerical) 
+        x_diff = abs(x_analytical - x_numerical) * 1e3
+        y_diff = abs(y_analytical - y_numerical) * 1e3
         
         x_diff_list.append(x_diff)
         y_diff_list.append(y_diff)
         
     pl.plot(Energy, x_diff_list, label = "Electric field deflection (x)")
     pl.plot(Energy, y_diff_list, label = "Magnetic field deflection (y)")
-    pl.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+ #   pl.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
     pl.xlabel("Energy / MeV")
-    pl.ylabel("Absolute error / m")
+    pl.ylabel("Percentage error / %")
     pl.legend()
     pl.show()
     

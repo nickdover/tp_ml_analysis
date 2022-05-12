@@ -100,23 +100,23 @@ def Train_model(x_train, y_train, model, epochs, learning_rate = 0.1, loss = "me
     model.summary()
     batch_size = 128
     epochs = epochs
-
+    callback = keras.callbacks.EarlyStopping(monitor='loss', patience=5)
     opt = keras.optimizers.Adam(learning_rate = learning_rate)
     model.compile(loss=loss, optimizer=opt, metrics=metrics)
-    history = model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, validation_split=0.1)
+    history = model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, validation_split=0.1, callbacks=[callback])
     
     if store_model:
         model.save(model_name+".h5")
         with open(f"{model_name}.obj","wb") as f0:
-            pickle.dump(history.history, f0)
+            pickle.dump([history.history,scaler], f0)
             
     return model, history, scaler
 
 def getModel(model_name):
     new_model = keras.models.load_model(model_name+".h5")
     with open(f"{model_name}.obj","rb") as f0:
-        history = pickle.load(f0)
-    return new_model, history
+        res = pickle.load(f0)
+    return new_model, res[0], res[1]
 
 def plot_loss(history):
     Epoch = np.arange(1, len(history['loss']) + 1, 1)
@@ -131,7 +131,7 @@ def Evaluate_model(y_pred, y_actu):
     def absPercentageError(actual, predictions):
         res = []
         for i in range(len(actual)):
-            res.append(abs(actual[i] - predictions[i]) / predictions[i] * 100) 
+            res.append(abs(actual[i] - predictions[i]) / actual[i] * 100) 
         return res 
 
     def SqaredError(actual, predictions):
