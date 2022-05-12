@@ -10,8 +10,6 @@ from tensorflow.keras import layers
 import Machine_Learning as ml
 from sklearn.model_selection import train_test_split
 from keras_tuner import Hyperband
-import pickle
-from sklearn.preprocessing import MinMaxScaler  
 #%% Data retreival & Data Processing
 folders = ["D:\Year 3 Project\Year-3-Project\Dataset_2"]
 #ml.unzip(foldername)
@@ -33,13 +31,13 @@ detector_threshold = 255
 zero_point_micron = 200
 multiplier = 1
 
-noisy_data_64, res = ml.add_noise(pixel_map_64, res, multiplier, weight, background_noise, abberations, hard_hit_noise_fraction, detector_threshold, zero_point_micron, x_range_mm, y_range_mm)
-clean_data_64, _ = ml.add_noise(pixel_map_64, res, multiplier, weight, 0, 0, 0, detector_threshold, 0, x_range_mm, y_range_mm)
+noisy_data, res = ml.add_noise(pixel_map_64, res, multiplier, weight, background_noise, abberations, hard_hit_noise_fraction, detector_threshold, zero_point_micron, x_range_mm, y_range_mm)
+clean_data, _ = ml.add_noise(pixel_map_64, res, multiplier, weight, 0, 0, 0, detector_threshold, 0, x_range_mm, y_range_mm)
 # Initial Processing of data 
-noisy_processed_64 = ml.preprocess(noisy_data_64)
-clean_processed_64 = ml.preprocess(clean_data_64)
+noisy_processed = ml.preprocess(noisy_data)
+clean_processed = ml.preprocess(clean_data)
 
-noisy_train, noisy_test, clean_train, clean_test = train_test_split(noisy_processed_64, clean_processed_64, test_size=0.2, random_state=42)
+noisy_train, noisy_test, clean_train, clean_test = train_test_split(noisy_processed, clean_processed, test_size=0.2, random_state=42)
 params_train, params_test = train_test_split(res, test_size=0.2, random_state=42)
 
 #%% Model Training
@@ -60,17 +58,25 @@ Optimised_model = keras.Sequential(
     ]
 )  
 
-Optimised_model.load_weights("64x64 Noisy model.h5")
-scaler = MinMaxScaler() 
-scaler.fit(params_train)
-    
 
-#%%
-Predictions = scaler.inverse_transform(Optimised_model.predict(noisy_test))
 #%%
 epochs = 50
 learning_rate = 1e-4
-model, history, scaler = ml.Train_model(clean_train, params_train, Optimised_model, epochs = epochs, learning_rate = learning_rate, store_model = True, model_name = "32x32 Clean model")
+
+model_name = "CNN 64 x 64"
+
+"""
+Note: The model is trained on parameters with MinMaxScaler. So need to inverse tranform 
+the prediction of the model. 
+
+i.e scaler.inverse_transform(model.predict(noisy_test))
+
+"""
+
+model, history, scaler = ml.Train_model(clean_train, params_train, Optimised_model, 
+                                        epochs = epochs, learning_rate = learning_rate, 
+                                        store_model = True, model_name = model_name)
+
 
 #%% Hyperparameter fine-tuning
 
