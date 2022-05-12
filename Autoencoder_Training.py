@@ -11,14 +11,14 @@ import Machine_Learning as ml
 from sklearn.model_selection import train_test_split
 
 #%% Data retreival 
-folders = ["Dataset_2", "Dataset_3"]
+folders = ["D:\Year 3 Project\Year-3-Project\Dataset_2"]
 #ml.unzip(foldername)
 pixel_map_32, pixel_map_64, res = [], [], []
 for folder in folders:
     dataset = ml.getData(folder, ["Thermal energy of beam (MeV)", 'Number of accepted particles in beam', "Maximum energy of beam (MeV)"])
     pixel_map_32 += dataset[0]
     pixel_map_64 += dataset[1]
-    res += dataset[3]
+    res += dataset[2]
 
 
 #%% Data Processing
@@ -46,7 +46,7 @@ params_train, params_test = train_test_split(res, test_size=0.2, random_state=42
 
 batch_size = 128
 learning_rate = 0.005
-epochs = 5
+epochs = 20 
 
 autoencoder = keras.Sequential(
     [
@@ -70,3 +70,6 @@ autoencoder.summary()
 history = autoencoder.fit(noisy_train, clean_train, batch_size=batch_size, epochs=epochs, validation_split=0.1, shuffle=True)
 score = autoencoder.evaluate(noisy_test, clean_test, verbose=0)
 print("Test binary_crossentropy (loss):", score)
+#%%
+CNN_clean32, history = ml.getModel("Noisy_Data_28_0")
+ml.plot_loss(history)
