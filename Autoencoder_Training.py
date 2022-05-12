@@ -5,6 +5,12 @@ Created on Wed Mar 16 21:13:42 2022
 @author: user
 """
 #%%
+"""
+This script is for the training of the autoencoder.
+
+Requires a dataset of images stored in a folder. 
+Trained model can be stored.    
+"""
 from tensorflow import keras
 from tensorflow.keras import layers
 import Machine_Learning as ml
@@ -33,13 +39,13 @@ detector_threshold = 255
 zero_point_micron = 200
 multiplier = 1
 
-noisy_data_32, res = ml.add_noise(pixel_map_32, res, multiplier, weight, background_noise, abberations, hard_hit_noise_fraction, detector_threshold, zero_point_micron, x_range_mm, y_range_mm)
-clean_data_32, _ = ml.add_noise(pixel_map_32, res, multiplier, weight, 0, 0, 0, detector_threshold, 0, x_range_mm, y_range_mm)
+noisy_data, res = ml.add_noise(pixel_map_32, res, multiplier, weight, background_noise, abberations, hard_hit_noise_fraction, detector_threshold, zero_point_micron, x_range_mm, y_range_mm)
+clean_data, _ = ml.add_noise(pixel_map_32, res, multiplier, weight, 0, 0, 0, detector_threshold, 0, x_range_mm, y_range_mm)
 # Initial Processing of data
-noisy_processed_32 = ml.preprocess(noisy_data_32)
-clean_processed_32 = ml.preprocess(clean_data_32)
+noisy_processed = ml.preprocess(noisy_data)
+clean_processed = ml.preprocess(clean_data)
 
-noisy_train, noisy_test, clean_train, clean_test = train_test_split(noisy_processed_32, clean_processed_32, test_size=0.2, random_state=42)
+noisy_train, noisy_test, clean_train, clean_test = train_test_split(noisy_processed, clean_processed, test_size=0.2, random_state=42)
 params_train, params_test = train_test_split(res, test_size=0.2, random_state=42)
 
 #%% Model Training
@@ -66,10 +72,13 @@ opt = keras.optimizers.Adam(learning_rate = learning_rate)
 # Autoencoder
 autoencoder.compile(optimizer = opt, loss = "binary_crossentropy")
 autoencoder.summary()
-
 history = autoencoder.fit(noisy_train, clean_train, batch_size=batch_size, epochs=epochs, validation_split=0.1, shuffle=True)
 score = autoencoder.evaluate(noisy_test, clean_test, verbose=0)
+ml.plot_loss(history)
+# Model storing so that it can be reused without training model again
+model_name = "Autoencoder 32 x 32 "
+autoencoder.save(model_name+".h5")
 print("Test binary_crossentropy (loss):", score)
 #%%
-CNN_clean32, history = ml.getModel("Noisy_Data_28_0")
-ml.plot_loss(history)
+autoencoder, history = ml.getModel("Autoencoder 32 x 32.h5")
+
